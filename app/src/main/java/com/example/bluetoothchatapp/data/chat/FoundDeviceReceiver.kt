@@ -12,14 +12,21 @@ class FoundDeviceReceiver(
 ) :BroadcastReceiver(){
     override fun onReceive(context: Context?, intent: Intent?) {
         //here we send the name of bluetooth device
-        val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent?.getParcelableExtra(
-                BluetoothDevice.EXTRA_DEVICE,
-                BluetoothDevice::class.java
-            )
-        } else {
-            intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+        when(intent?.action){
+            BluetoothDevice.ACTION_FOUND->{
+                val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(
+                        BluetoothDevice.EXTRA_DEVICE,
+                        BluetoothDevice::class.java
+                    )
+                } else {
+                    intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                }
+                device?.let(onDeviceFound)
+            }
         }
-        device?.let(onDeviceFound)
+
     }
+
+
 }
