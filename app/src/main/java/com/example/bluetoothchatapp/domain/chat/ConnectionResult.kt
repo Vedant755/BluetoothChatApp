@@ -7,4 +7,7 @@ sealed interface ConnectionResult{
     object ConnectionEstablished: ConnectionResult
     //error
     data class Error(val message: String): ConnectionResult
+
+    //status
+    data class TransferSuceeded(val message: BluetoothMessage):ConnectionResult
 }

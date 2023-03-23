@@ -8,6 +8,7 @@ import com.example.bluetoothchatapp.domain.chat.ConnectionResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -23,7 +24,8 @@ class BluetoothViewModel @Inject constructor(
     ){ scannedDevices,pairedDevices, state ->
         state.copy(
             scannedDevices = scannedDevices,
-            pairedDevices=pairedDevices
+            pairedDevices=pairedDevices,
+            message = if (state.isConnected) state.message else emptyList()
         )
         //stateIn just converts the normal flow into stateflow and caches the latest value
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000),_state.value)
@@ -56,7 +58,9 @@ class BluetoothViewModel @Inject constructor(
                 isConnecting = true
             )
         }
-        deviceCOntrollerJob=bluetoothController.startBluetoothServer().listen()
+        deviceCOntrollerJob=bluetoothController
+            .startBluetoothServer()
+            .listen()
     }
 
     fun disconnectFromDevice(){
@@ -69,6 +73,20 @@ class BluetoothViewModel @Inject constructor(
             )
         }
     }
+
+    fun sendMessage(message:String){
+        viewModelScope.launch {
+            val bluetoothMessage=bluetoothController.trySendMessage(message)
+            if (bluetoothMessage!=null){
+                _state.update {
+                    it.copy(
+                        message=it.message+bluetoothMessage
+                    )
+                }
+            }
+        }
+    }
+
 
     fun startScan(){
         bluetoothController.startDiscovery()
@@ -86,6 +104,13 @@ class BluetoothViewModel @Inject constructor(
                         isConnecting = false,
                         error = null
                     )
+                    }
+                }
+                is ConnectionResult.TransferSuceeded->{
+                    _state.update {
+                        it.copy(
+                            message = it.message+result.message
+                        )
                     }
                 }
                 is ConnectionResult.Error -> {
